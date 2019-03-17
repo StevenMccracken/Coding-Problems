@@ -8,33 +8,48 @@
 
 import Foundation
 
-struct SafeArray<T> {
-  private var tracker: Int = 0
-  private var data: [T]
-  private let queue = DispatchQueue(label: "SafeArray_\(T.self)_\(UUID().uuidString)", attributes: .concurrent)
+class SafeArray<Element>: Sequence, IteratorProtocol {
 
-  init(data: [T]) {
-    self.data = data
+  private var items: [Element]
+  private var iteratorIndex: Int = 0
+  private let queue = DispatchQueue(label: UUID().uuidString, attributes: .concurrent)
+
+  init(items: [Element]) {
+    self.items = items
   }
-}
 
-extension SafeArray: Sequence {
-  typealias Iterator = SafeArray
-}
+  // MARK: - IteratorProtocol
 
-
-extension SafeArray: IteratorProtocol {
-  typealias Element = T
-
-  mutating func next() -> T? {
-    guard tracker < data.count else {
-      return nil
-    }
-
+  func next() -> Element? {
     defer {
-      tracker = tracker + 1
+      iteratorIndex = iteratorIndex + 1
     }
 
-    return data[tracker]
+    return iteratorIndex < count ? self[iteratorIndex] : nil
+  }
+
+  var count: Int {
+    var itemsCount: Int!
+    queue.sync {
+      itemsCount = self.items.count
+    }
+
+    return itemsCount
+  }
+
+  subscript(index: Int) -> Element {
+    get {
+      var item: Element!
+      queue.sync {
+        item = self.items[index]
+      }
+
+      return item
+    }
+    set {
+      queue.async(flags: .barrier) {
+        self.items[index] = newValue
+      }
+    }
   }
 }
