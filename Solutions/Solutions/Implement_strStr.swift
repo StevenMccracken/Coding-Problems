@@ -10,11 +10,7 @@ import Foundation
 
 class Implement_strStr {
   func strStr(_ haystack: String, _ needle: String) -> Int {
-    if needle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-      return 0
-    }
-
-    if haystack == needle {
+    if needle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || haystack == needle {
       return 0
     }
 
